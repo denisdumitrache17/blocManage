@@ -282,7 +282,7 @@ export default function Dashboard() {
                         {inv.request?.scope === 'BUILDING' ? 'Bloc' : 'Personal'}
                       </Badge>
                     </td>
-                    <td>{inv.firm?.profile?.companyName || '—'}</td>
+                    <td>{inv.firm?.companyName || '—'}</td>
                     <td>{new Date(inv.createdAt).toLocaleDateString('ro-RO')}</td>
                     <td className="text-end">
                       <Button variant="outline-primary" size="sm" onClick={() => navigate('/invoices')}>
@@ -332,7 +332,7 @@ export default function Dashboard() {
                         {r.status === 'IN_PROGRESS' ? 'Firmă asignată' : 'Validată'}
                       </Badge>
                     </td>
-                    <td>{r.firm?.profile?.companyName || r.firm?.user?.email || '—'}</td>
+                    <td>{r.firm?.companyName || '—'}</td>
                     <td>{new Date(r.updatedAt).toLocaleDateString('ro-RO')}</td>
                     <td className="text-end">
                       <Button variant="outline-primary" size="sm" onClick={() => navigate('/requests')}>

@@ -35,12 +35,15 @@ export default function AdminDashboard() {
   const [requests, setRequests] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [firms, setFirms] = useState([]);
+  const [firmsCount, setFirmsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [showAssign, setShowAssign] = useState(false);
   const [assignRequestId, setAssignRequestId] = useState(null);
   const [selectedFirmId, setSelectedFirmId] = useState('');
+  const [firmsLoading, setFirmsLoading] = useState(false);
+  const [noEligible, setNoEligible] = useState(false);
 
   const [showDetail, setShowDetail] = useState(false);
   const [detailRequest, setDetailRequest] = useState(null);
@@ -54,7 +57,7 @@ export default function AdminDashboard() {
       ]);
       setRequests(reqRes.data.requests);
       setInvoices(invRes.data.invoices);
-      setFirms(firmRes.data.firms);
+      setFirmsCount(firmRes.data.firms.length);
     } catch (err) {
       setError(err.response?.data?.message || 'Eroare la încărcare');
     } finally {
@@ -76,10 +79,35 @@ export default function AdminDashboard() {
     }
   };
 
-  const openAssignModal = (requestId) => {
+  const fetchEligibleFirms = async (requestId, bypass = false) => {
+    setFirmsLoading(true);
+    setNoEligible(false);
+    try {
+      const url = `/requests/${requestId}/eligible-firms${bypass ? '?bypass=true' : ''}`;
+      const res = await api.get(url);
+      setFirms(res.data.firms);
+      if (!bypass && res.data.firms.length === 0) {
+        setNoEligible(true);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Eroare la încărcarea firmelor');
+    } finally {
+      setFirmsLoading(false);
+    }
+  };
+
+  const openAssignModal = async (requestId) => {
     setAssignRequestId(requestId);
     setSelectedFirmId('');
+    setFirms([]);
+    setNoEligible(false);
     setShowAssign(true);
+    await fetchEligibleFirms(requestId);
+  };
+
+  const handleBypassFilters = async () => {
+    if (!assignRequestId) return;
+    await fetchEligibleFirms(assignRequestId, true);
   };
 
   const handleAssignFirm = async () => {
@@ -87,6 +115,7 @@ export default function AdminDashboard() {
     try {
       await api.patch(`/requests/${assignRequestId}/assign-firm`, { firmId: selectedFirmId });
       setShowAssign(false);
+      setSelectedFirmId('');
       await fetchAll();
     } catch (err) {
       setError(err.response?.data?.message || 'Eroare la asignare');
@@ -143,7 +172,7 @@ export default function AdminDashboard() {
           <Card className="text-center h-100 border-0 shadow-sm">
             <Card.Body>
               <Building size={28} className="text-success mb-2" />
-              <h3 className="fw-bold mb-0">{firms.length}</h3>
+              <h3 className="fw-bold mb-0">{firmsCount}</h3>
               <small className="text-muted">Firme partenere</small>
             </Card.Body>
           </Card>
@@ -395,24 +424,48 @@ export default function AdminDashboard() {
           <Modal.Title>Asignează firmă</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form.Group>
-            <Form.Label>Selectează firma</Form.Label>
-            <Form.Select
-              value={selectedFirmId}
-              onChange={(e) => setSelectedFirmId(e.target.value)}
-            >
-              <option value="">— Alege o firmă —</option>
-              {firms.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.companyName} (CUI: {f.cui})
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
+          {firmsLoading ? (
+            <div className="text-center py-3">
+              <Spinner animation="border" size="sm" className="me-2" />
+              Se caută firme eligibile...
+            </div>
+          ) : (
+            <>
+              {noEligible && (
+                <>
+                  <Alert variant="warning" className="mb-3">
+                    Nu a fost găsită nicio firmă eligibilă în acest oraș pentru această categorie.
+                  </Alert>
+                  <div className="text-center mb-3">
+                    <Button variant="outline-secondary" size="sm" onClick={handleBypassFilters}>
+                      Arată toate firmele din platformă
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {firms.length > 0 && (
+                <Form.Group>
+                  <Form.Label>Selectează firma</Form.Label>
+                  <Form.Select
+                    value={selectedFirmId}
+                    onChange={(e) => setSelectedFirmId(e.target.value)}
+                  >
+                    <option value="">— Alege o firmă —</option>
+                    {firms.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.companyName}{f.avgRating ? ` ⭐ ${f.avgRating}` : ''} — {f.hqAddress}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              )}
+            </>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowAssign(false)}>Anulează</Button>
-          <Button onClick={handleAssignFirm} disabled={!selectedFirmId}>Asignează</Button>
+          <Button onClick={handleAssignFirm} disabled={!selectedFirmId || firmsLoading}>Asignează</Button>
         </Modal.Footer>
       </Modal>
     </>

@@ -9,6 +9,8 @@ import {
 import { PlusCircle, Trash } from 'react-bootstrap-icons';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
+import AddressFormLogic from '../components/AddressFormLogic';
+import { SERVICE_CATEGORIES } from '../constants/domains';
 
 /* ── Validation schemas ─────────────────────────────── */
 
@@ -24,17 +26,26 @@ const tenantSchema = z.object({
   apartmentNumber: z.string().min(1, 'Obligatoriu')
 });
 
+const addressFields = {
+  postalCode: z.string().regex(/^\d{6}$/, 'Cod poștal invalid (6 cifre)'),
+  county: z.string().min(2, 'Minim 2 caractere'),
+  city: z.string().min(2, 'Minim 2 caractere'),
+  street: z.string().min(2, 'Minim 2 caractere')
+};
+
+const buildAddress = ({ postalCode, county, city, street }) =>
+  [street, city, county, postalCode].filter(Boolean).join(', ');
+
 const hoaSchema = z.object({
   email: z.string().email('Email invalid'),
   password: z.string().min(8, 'Minim 8 caractere'),
   presidentName: z.string().min(2, 'Minim 2 caractere'),
   adminName: z.string().min(2, 'Minim 2 caractere'),
-  buildingAddress: z.string().min(5, 'Minim 5 caractere'),
+  ...addressFields,
   staircases: z.array(z.object({
     name: z.string().min(1, 'Obligatoriu'),
     apartmentsCount: z.coerce.number().int().positive('Trebuie pozitiv')
-  })).min(1, 'Adaugă cel puțin o scară'),
-  documentsUrl: z.string().url('URL invalid').optional().or(z.literal(''))
+  })).min(1, 'Adaugă cel puțin o scară')
 });
 
 const firmSchema = z.object({
@@ -46,9 +57,10 @@ const firmSchema = z.object({
   adminName: z.string().min(2, 'Minim 2 caractere'),
   phone: z.string().min(7, 'Minim 7 caractere'),
   contactEmail: z.string().email('Email invalid'),
-  hqAddress: z.string().min(5, 'Minim 5 caractere'),
+  ...addressFields,
   iban: z.string().min(8, 'Minim 8 caractere'),
-  bankName: z.string().min(2, 'Minim 2 caractere')
+  bankName: z.string().min(2, 'Minim 2 caractere'),
+  domains: z.array(z.string()).min(1, 'Selectează cel puțin un domeniu')
 });
 
 /* ── Tenant form ────────────────────────────────────── */
@@ -213,7 +225,7 @@ function HoaForm() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
 
-  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(hoaSchema),
     defaultValues: { staircases: [{ name: '', apartmentsCount: '' }] }
   });
@@ -222,10 +234,11 @@ function HoaForm() {
 
   const onSubmit = async (data) => {
     setServerError('');
+    const { postalCode, county, city, street, ...rest } = data;
     try {
       await registerHoa({
-        ...data,
-        documentsUrl: data.documentsUrl || undefined
+        ...rest,
+        buildingAddress: buildAddress({ postalCode, county, city, street })
       });
       navigate('/dashboard');
     } catch (err) {
@@ -266,16 +279,13 @@ function HoaForm() {
         </Col>
       </Row>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Adresa bloc</Form.Label>
-        <Form.Control isInvalid={!!errors.buildingAddress} {...register('buildingAddress')} />
-        <Form.Control.Feedback type="invalid">{errors.buildingAddress?.message}</Form.Control.Feedback>
-      </Form.Group>
-
-      <Form.Group className="mb-3">
-        <Form.Label>URL documente <span className="text-muted">(opțional)</span></Form.Label>
-        <Form.Control type="url" {...register('documentsUrl')} />
-      </Form.Group>
+      <h6 className="fw-semibold mt-3 mb-2">Adresa bloc</h6>
+      <AddressFormLogic
+        register={register}
+        setValue={setValue}
+        watch={watch}
+        errors={errors}
+      />
 
       {/* Staircases dynamic list */}
       <div className="mb-3">
@@ -335,14 +345,28 @@ function FirmForm() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(firmSchema)
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(firmSchema),
+    defaultValues: { domains: [] }
   });
+
+  const selectedDomains = watch('domains') || [];
+
+  const handleDomainToggle = (domain) => {
+    const updated = selectedDomains.includes(domain)
+      ? selectedDomains.filter((d) => d !== domain)
+      : [...selectedDomains, domain];
+    setValue('domains', updated, { shouldValidate: true });
+  };
 
   const onSubmit = async (data) => {
     setServerError('');
+    const { postalCode, county, city, street, ...rest } = data;
     try {
-      await registerFirm(data);
+      await registerFirm({
+        ...rest,
+        hqAddress: buildAddress({ postalCode, county, city, street })
+      });
       navigate('/dashboard');
     } catch (err) {
       setServerError(err.response?.data?.message || 'Eroare la înregistrare');
@@ -416,10 +440,28 @@ function FirmForm() {
         </Col>
       </Row>
 
+      <h6 className="fw-semibold mt-3 mb-2">Adresa sediu</h6>
+      <AddressFormLogic
+        register={register}
+        setValue={setValue}
+        watch={watch}
+        errors={errors}
+      />
+
       <Form.Group className="mb-3">
-        <Form.Label>Adresa sediu</Form.Label>
-        <Form.Control isInvalid={!!errors.hqAddress} {...register('hqAddress')} />
-        <Form.Control.Feedback type="invalid">{errors.hqAddress?.message}</Form.Control.Feedback>
+        <Form.Label className="fw-semibold">Domenii de activitate</Form.Label>
+        {SERVICE_CATEGORIES.map((cat) => (
+          <Form.Check
+            key={cat}
+            type="checkbox"
+            label={cat}
+            checked={selectedDomains.includes(cat)}
+            onChange={() => handleDomainToggle(cat)}
+          />
+        ))}
+        {errors.domains && (
+          <div className="text-danger small mt-1">{errors.domains.message}</div>
+        )}
       </Form.Group>
 
       <Row>

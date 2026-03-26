@@ -112,6 +112,19 @@ export default function Firms() {
                     <EnvelopeAt className="me-1" /> {firm.email}
                   </p>
 
+                  {firm.domains?.length > 0 && (
+                    <div className="mb-2">
+                      <small className="text-muted fw-semibold">Domenii de activitate:</small>
+                      <div className="d-flex flex-wrap gap-1 mt-1">
+                        {firm.domains.map((d) => (
+                          <Badge key={d} bg="info" text="dark" className="fw-normal">
+                            {d}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {firm.portfolios.length > 0 && (
                     <div className="mb-2">
                       <small className="text-muted fw-semibold">Portofoliu:</small>
