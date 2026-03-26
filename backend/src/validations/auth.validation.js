@@ -50,6 +50,7 @@ export const registerFirmSchema = z.object({
   hqAddress: z.string().trim().min(5).max(255),
   iban: z.string().trim().min(8).max(34),
   bankName: z.string().trim().min(2).max(100),
+  domains: z.array(z.string().trim().min(1)).min(1, 'Selectează cel puțin un domeniu'),
   portfolios: z.array(portfolioItemSchema).optional().default([])
 });
 

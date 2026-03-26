@@ -2,6 +2,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import {
   assignFirmToRequest,
   createRequest,
+  getEligibleFirms,
   getRequestById,
   hoaApproveRequest,
   hoaRejectRequest,
@@ -42,4 +43,10 @@ export const hoaApproveController = asyncHandler(async (req, res) => {
 export const hoaRejectController = asyncHandler(async (req, res) => {
   const request = await hoaRejectRequest(req.authUser, req.params.requestId);
   res.status(200).json({ request });
+});
+
+export const eligibleFirmsController = asyncHandler(async (req, res) => {
+  const bypass = req.query.bypass === 'true';
+  const firms = await getEligibleFirms(req.authUser, req.params.requestId, bypass);
+  res.status(200).json({ firms });
 });

@@ -136,7 +136,8 @@ export const registerFirm = async (payload) => {
         email: payload.contactEmail,
         hqAddress: payload.hqAddress,
         iban: payload.iban,
-        bankName: payload.bankName
+        bankName: payload.bankName,
+        domains: payload.domains
       }
     });
 

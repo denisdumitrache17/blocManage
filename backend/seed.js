@@ -37,7 +37,7 @@ async function main() {
         create: {
           presidentName: 'Ion Popescu',
           adminName: 'Maria Ionescu',
-          buildingAddress: 'Str. Florilor nr. 10, Bloc A, București',
+          buildingAddress: 'Strada Florilor nr. 10, Bloc A, București, Sector 1, 010101',
           documentsUrl: null,
           staircases: {
             create: [
@@ -69,9 +69,13 @@ async function main() {
           adminName: 'Andrei Vasilescu',
           phone: '0722111222',
           email: 'contact@tehnofix.ro',
-          hqAddress: 'Str. Industriilor nr. 5, Cluj-Napoca',
+          hqAddress: 'Strada Industriilor nr. 5, Cluj-Napoca, Cluj, 400001',
           iban: 'RO49AAAA1B31007593840000',
           bankName: 'Banca Transilvania',
+          domains: [
+            'Instalații Sanitare (apă, canalizare)',
+            'Lifturi și Ascensoare'
+          ],
           portfolios: {
             create: [
               { title: 'Reparații instalații sanitare', imageUrl: 'https://placehold.co/400x300?text=Instalatii' },
@@ -103,7 +107,7 @@ async function main() {
           lastName: 'Dumitrescu',
           phone: '0733444555',
           cnp: '1900101123456',
-          addressText: 'Str. Florilor nr. 10, Bloc A, București',
+          addressText: 'Strada Florilor nr. 10, Bloc A, București, Sector 1, 010101',
           apartmentNumber: '12',
           isApproved: true
         }
@@ -126,7 +130,7 @@ async function main() {
         create: {
           presidentName: 'Vasile Marin',
           adminName: 'Elena Preda',
-          buildingAddress: 'Bd. Unirii nr. 42, Bloc C1, Sector 3, București',
+          buildingAddress: 'Bulevardul Unirii nr. 42, Bloc C1, București, Sector 3, 030823',
           documentsUrl: null,
           staircases: {
             create: [
@@ -155,7 +159,7 @@ async function main() {
         create: {
           presidentName: 'Gheorghe Stancu',
           adminName: 'Ioana Radu',
-          buildingAddress: 'Str. Libertății nr. 7, Bloc D2, Cluj-Napoca',
+          buildingAddress: 'Strada Libertății nr. 7, Bloc D2, Cluj-Napoca, Cluj, 400371',
           documentsUrl: null,
           staircases: {
             create: [
@@ -187,9 +191,12 @@ async function main() {
           adminName: 'Cristian Moldovan',
           phone: '0744222333',
           email: 'office@aquapro.ro',
-          hqAddress: 'Str. Meșteșugarilor nr. 12, Timișoara',
+          hqAddress: 'Strada Meșteșugarilor nr. 12, Timișoara, Timiș, 300011',
           iban: 'RO22BRDE445SV75312344500',
           bankName: 'BRD - Groupe Société Générale',
+          domains: [
+            'Instalații Sanitare (apă, canalizare)'
+          ],
           portfolios: {
             create: [
               { title: 'Instalații termice și încălzire', imageUrl: 'https://placehold.co/400x300?text=Termice' },
@@ -222,9 +229,13 @@ async function main() {
           adminName: 'Mihai Diaconu',
           phone: '0755333444',
           email: 'contact@electroservice.ro',
-          hqAddress: 'Calea Victoriei nr. 88, București',
+          hqAddress: 'Calea Victoriei nr. 88, București, Sector 1, 010083',
           iban: 'RO55RNCB0082044171830001',
           bankName: 'BCR',
+          domains: [
+            'Instalații Electrice',
+            'Lăcătușerie și Interfoane'
+          ],
           portfolios: {
             create: [
               { title: 'Instalații electrice rezidențiale', imageUrl: 'https://placehold.co/400x300?text=Electrice' },
@@ -258,7 +269,7 @@ async function main() {
           lastName: 'Constantinescu',
           phone: '0766555666',
           cnp: '2850315223344',
-          addressText: 'Str. Florilor nr. 10, Bloc A, București',
+          addressText: 'Strada Florilor nr. 10, Bloc A, București, Sector 1, 010101',
           apartmentNumber: '7',
           isApproved: true
         }
@@ -285,7 +296,7 @@ async function main() {
           lastName: 'Gheorghescu',
           phone: '0777666777',
           cnp: '1920505334455',
-          addressText: 'Bd. Unirii nr. 42, Bloc C1, Sector 3, București',
+          addressText: 'Bulevardul Unirii nr. 42, Bloc C1, București, Sector 3, 030823',
           apartmentNumber: '22',
           isApproved: true
         }

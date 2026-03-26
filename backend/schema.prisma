@@ -137,6 +137,7 @@ model Firm {
   hqAddress   String
   iban        String
   bankName    String
+  domains     String[]
 
   portfolios  Portfolio[]
   requests    Request[]   @relation("FirmRequests")

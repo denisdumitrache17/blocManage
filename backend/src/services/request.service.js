@@ -224,7 +224,7 @@ export const assignFirmToRequest = async (user, requestId, firmId) => {
 
   const updatedRequest = await prisma.request.update({
     where: { id: requestId },
-    data: { firmId },
+    data: { firmId, status: 'IN_PROGRESS' },
     include: requestInclude
   });
 
@@ -235,4 +235,118 @@ export const assignFirmToRequest = async (user, requestId, firmId) => {
   }
 
   return updatedRequest;
+};
+
+// ── Eligible firms (PLATFORM_ADMIN only) ────────────────
+
+/**
+ * Extracts the city from a standardized address string.
+ * Handles two formats:
+ *   4-part: "Street, City, County, PostalCode"
+ *   5-part: "Street, Bloc X, City, Sector/County, PostalCode"
+ * Heuristic: if a segment starts with "Bloc " it's skipped.
+ */
+const extractCity = (address) => {
+  if (!address) return null;
+  const parts = address.split(',').map((p) => p.trim());
+  // Skip any "Bloc …" segment — city is the first non-street, non-bloc segment
+  for (let i = 1; i < parts.length; i++) {
+    if (/^bloc\s/i.test(parts[i])) continue;       // skip "Bloc A", "Bloc C1"
+    if (/^\d{5,6}$/.test(parts[i])) continue;       // skip postal codes
+    if (/^sector\s/i.test(parts[i])) continue;      // skip "Sector 1"
+    return parts[i];
+  }
+  return null;
+};
+
+export const getEligibleFirms = async (user, requestId, bypassFilters = false) => {
+  if (user.role !== 'PLATFORM_ADMIN') {
+    throw new AppError('Doar un PLATFORM_ADMIN poate vedea firmele eligibile', 403);
+  }
+
+  // ── Pasul A: Extract request + requester city ──
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: {
+      requester: {
+        select: {
+          tenant: { select: { addressText: true, hoa: { select: { buildingAddress: true } } } },
+          hoa: { select: { buildingAddress: true } }
+        }
+      }
+    }
+  });
+
+  if (!request) {
+    throw new AppError('Cererea nu a fost gasita', 404);
+  }
+
+  // Determine city: from tenant's HOA (building address) or from HOA directly
+  const requesterAddress =
+    request.requester.tenant?.hoa?.buildingAddress ||
+    request.requester.hoa?.buildingAddress ||
+    request.requester.tenant?.addressText ||
+    '';
+
+  const city = extractCity(requesterAddress);
+
+  // ── Pasul B: Build dynamic firm query ──
+  if (bypassFilters) {
+    // Bypass: return ALL firms
+    const firms = await prisma.firm.findMany({
+      select: {
+        id: true,
+        companyName: true,
+        hqAddress: true,
+        caen: true,
+        reviews: { select: { rating: true } }
+      }
+    });
+
+    return firms.map((f) => ({
+      id: f.id,
+      companyName: f.companyName,
+      hqAddress: f.hqAddress,
+      caen: f.caen,
+      avgRating: f.reviews.length
+        ? +(f.reviews.reduce((sum, r) => sum + r.rating, 0) / f.reviews.length).toFixed(1)
+        : null
+    }));
+  }
+
+  // Condiția 1 (Locație - Obligatorie): firm hqAddress contains city
+  const where = {};
+  if (city) {
+    where.hqAddress = { contains: city, mode: 'insensitive' };
+  }
+
+  // Condiția 2 (Domeniu - Condițională): only if category is NOT a custom value
+  // "Altă variantă" means custom category — skip domain filter
+  const isCustomCategory = !request.category || request.category === 'Altă variantă';
+
+  if (!isCustomCategory) {
+    // Match firms whose domains array contains the request category
+    where.domains = { has: request.category };
+  }
+
+  const firms = await prisma.firm.findMany({
+    where,
+    select: {
+      id: true,
+      companyName: true,
+      hqAddress: true,
+      caen: true,
+      reviews: { select: { rating: true } }
+    }
+  });
+
+  return firms.map((f) => ({
+    id: f.id,
+    companyName: f.companyName,
+    hqAddress: f.hqAddress,
+    caen: f.caen,
+    avgRating: f.reviews.length
+      ? +(f.reviews.reduce((sum, r) => sum + r.rating, 0) / f.reviews.length).toFixed(1)
+      : null
+  }));
 };

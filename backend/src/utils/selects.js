@@ -47,6 +47,7 @@ export const publicFirmSelect = {
   hqAddress: true,
   iban: true,
   bankName: true,
+  domains: true,
   createdAt: true,
   updatedAt: true,
   portfolios: true
