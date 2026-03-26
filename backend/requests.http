@@ -1,0 +1,322 @@
+### ═══════════════════════════════════════════════════════
+### BlocManage API — REST Client Collection
+### Extensia: REST Client (humao.rest-client)
+###
+### INSTRUCȚIUNI:
+### 1. Pornește backend-ul: cd backend && npm run dev
+### 2. Rulează request-urile pe rând (click "Send Request" deasupra fiecăruia)
+### 3. După Login, copiază token-ul din răspuns și înlocuiește @token mai jos
+### ═══════════════════════════════════════════════════════
+
+@baseUrl = http://localhost:4000/api/v1
+@token = PASTE_TOKEN_HERE
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Register Tenant
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/auth/register/tenant
+Content-Type: application/json
+
+{
+  "email": "locatar1@test.com",
+  "password": "Parola123!",
+  "firstName": "Ion",
+  "lastName": "Popescu",
+  "phone": "0712345678",
+  "cnp": "1234567890123",
+  "addressText": "Strada Florilor 10",
+  "apartmentNumber": "4A"
+}
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Register HOA (Asociație)
+### Notă: buildingAddress trebuie să fie identic cu addressText
+###       al tenant-ului pentru auto-match.
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/auth/register/hoa
+Content-Type: application/json
+
+{
+  "email": "asociatie1@test.com",
+  "password": "Parola123!",
+  "presidentName": "Vasile Marin",
+  "adminName": "Maria Admin",
+  "buildingAddress": "Strada Florilor 10",
+  "staircases": [
+    { "name": "Scara A", "apartmentsCount": 20 },
+    { "name": "Scara B", "apartmentsCount": 15 }
+  ],
+  "documentsUrl": null
+}
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Register Firm (Firmă)
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/auth/register/firm
+Content-Type: application/json
+
+{
+  "email": "firma1@test.com",
+  "password": "Parola123!",
+  "companyName": "Instalatii Rapide SRL",
+  "cui": "RO12345678",
+  "caen": "4322",
+  "adminName": "Andrei Admin",
+  "phone": "0723456789",
+  "contactEmail": "contact@firma.ro",
+  "hqAddress": "Bd. Unirii 5, Sector 3",
+  "iban": "RO49AAAA1B31007593840000",
+  "bankName": "Banca Transilvania",
+  "portfolios": [
+    { "title": "Instalatie centrala termica", "imageUrl": "https://example.com/img1.jpg" },
+    { "title": "Reparatie tevi", "imageUrl": "https://example.com/img2.jpg" }
+  ]
+}
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Login
+### Notă: Copiază "token" din răspuns și pune-l la @token mai sus
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "locatar1@test.com",
+  "password": "Parola123!"
+}
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Logout
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/auth/logout
+
+### ═══════════════════════════════════════════════════════
+### AUTH — Profil Curent (Me)
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### HOA — Listare Tenant-i (logat ca HOA)
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/hoa/tenants
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### HOA — Aprobare Tenant
+### Înlocuiește :tenantId cu UUID-ul real din pasul anterior
+### ═══════════════════════════════════════════════════════
+
+@tenantId = PASTE_TENANT_ID_HERE
+
+PATCH {{baseUrl}}/hoa/tenants/{{tenantId}}/approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isApproved": true
+}
+
+### ═══════════════════════════════════════════════════════
+### HOA — Listare Scări
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/hoa/staircases
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### HOA — Creare Scară
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/hoa/staircases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Scara C",
+  "apartmentsCount": 12
+}
+
+### ═══════════════════════════════════════════════════════
+### REQUESTS — Creare Cerere (logat ca Tenant aprobat sau HOA)
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/requests
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "category": "Instalatii",
+  "description": "Teava sparta la baie, curge apa in apartament. Necesita interventie urgenta.",
+  "urgencyLevel": "CRITICAL"
+}
+
+### ═══════════════════════════════════════════════════════
+### REQUESTS — Listare Cereri
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/requests
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### REQUESTS — Detalii Cerere
+### ═══════════════════════════════════════════════════════
+
+@requestId = PASTE_REQUEST_ID_HERE
+
+GET {{baseUrl}}/requests/{{requestId}}
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### REQUESTS — Asignare Firmă la Cerere (doar HOA)
+### ═══════════════════════════════════════════════════════
+
+@firmId = PASTE_FIRM_ID_HERE
+
+PATCH {{baseUrl}}/requests/{{requestId}}/assign-firm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "firmId": "{{firmId}}"
+}
+
+### ═══════════════════════════════════════════════════════
+### REQUESTS — Actualizare Status (State Machine)
+### Secvența: PENDING -> VALIDATED -> IN_PROGRESS -> COMPLETED
+### ═══════════════════════════════════════════════════════
+
+PATCH {{baseUrl}}/requests/{{requestId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "VALIDATED"
+}
+
+###
+
+PATCH {{baseUrl}}/requests/{{requestId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
+###
+
+PATCH {{baseUrl}}/requests/{{requestId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+### ═══════════════════════════════════════════════════════
+### INVOICES — Creare Factură (doar FIRM, cerere asignată)
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}",
+  "amount": 1500.50,
+  "pdfUrl": "https://example.com/factura123.pdf"
+}
+
+### ═══════════════════════════════════════════════════════
+### INVOICES — Listare Facturi
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/invoices
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### INVOICES — Simulare Plată (doar TENANT sau HOA — clientul)
+### ═══════════════════════════════════════════════════════
+
+@invoiceId = PASTE_INVOICE_ID_HERE
+
+PATCH {{baseUrl}}/invoices/{{invoiceId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "PAID"
+}
+
+### ═══════════════════════════════════════════════════════
+### REVIEWS — Adăugare Review (doar inițiatorul cererii, cerere COMPLETED)
+### ═══════════════════════════════════════════════════════
+
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}",
+  "rating": 5,
+  "comment": "Lucrare excelenta, echipa profesionista!"
+}
+
+### ═══════════════════════════════════════════════════════
+### REVIEWS — Listare Review-uri
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### CONTRACTS — Creare Contract (doar FIRM)
+### ═══════════════════════════════════════════════════════
+
+@clientId = PASTE_CLIENT_USER_ID_HERE
+
+POST {{baseUrl}}/contracts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clientId": "{{clientId}}",
+  "title": "Contract întreținere instalații",
+  "startDate": "2026-04-01T00:00:00.000Z",
+  "endDate": "2027-04-01T00:00:00.000Z"
+}
+
+### ═══════════════════════════════════════════════════════
+### CONTRACTS — Listare Contracte
+### ═══════════════════════════════════════════════════════
+
+GET {{baseUrl}}/contracts
+Authorization: Bearer {{token}}
+
+### ═══════════════════════════════════════════════════════
+### CONTRACTS — Actualizare Status Contract
+### ═══════════════════════════════════════════════════════
+
+@contractId = PASTE_CONTRACT_ID_HERE
+
+PATCH {{baseUrl}}/contracts/{{contractId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+### ═══════════════════════════════════════════════════════
+### HEALTH CHECK
+### ═══════════════════════════════════════════════════════
+
+GET http://localhost:4000/health

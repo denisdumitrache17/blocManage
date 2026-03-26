@@ -1,0 +1,239 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Schimbă în "mysql" sau "sqlite" dacă folosești altceva local
+  url      = env("DATABASE_URL")
+}
+
+// ================= ENUMS =================
+
+enum Role {
+  TENANT
+  HOA
+  FIRM
+  PLATFORM_ADMIN
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  CRITICAL
+}
+
+enum RequestScope {
+  PERSONAL
+  BUILDING
+}
+
+enum RequestStatus {
+  PENDING_HOA_APPROVAL
+  PENDING
+  VALIDATED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum ContractStatus {
+  AWAITING_FIRM_DRAFT
+  AWAITING_CLIENT_SIGNATURE
+  SIGNED_AND_ACTIVE
+}
+
+// ================= MODELS =================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relații 1-la-1 bazate pe rol
+  tenant Tenant?
+  hoa    Hoa?
+  firm   Firm?
+
+  // Relații 1-la-Mai-Mulți pentru operațiuni
+  requests  Request[]  @relation("UserRequests")
+  invoices  Invoice[]  @relation("ClientInvoices")
+  contracts Contract[] @relation("ClientContracts")
+  reviews   Review[]   @relation("UserReviews")
+}
+
+model Tenant {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  hoaId           String?
+  hoa             Hoa?        @relation(fields: [hoaId], references: [id])
+  
+  staircaseId     String?
+  staircase       Staircase?  @relation(fields: [staircaseId], references: [id])
+  
+  firstName       String
+  lastName        String
+  phone           String
+  cnp             String?
+  addressText     String
+  apartmentNumber String
+  isApproved      Boolean     @default(false)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Hoa {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  presidentName   String
+  adminName       String
+  buildingAddress String
+  documentsUrl    String?     // Link către fișierele doveditoare
+
+  staircases      Staircase[]
+  tenants         Tenant[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Staircase {
+  id              String   @id @default(uuid())
+  hoaId           String
+  hoa             Hoa      @relation(fields: [hoaId], references: [id], onDelete: Cascade)
+  
+  name            String   // ex: "Scara A"
+  apartmentsCount Int
+  tenants         Tenant[]
+}
+
+model Firm {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  companyName String
+  cui         String   @unique
+  caen        String
+  adminName   String
+  phone       String
+  email       String
+  hqAddress   String
+  iban        String
+  bankName    String
+
+  portfolios  Portfolio[]
+  requests    Request[]   @relation("FirmRequests")
+  invoices    Invoice[]   @relation("FirmInvoices")
+  contracts   Contract[]  @relation("FirmContracts")
+  reviews     Review[]    @relation("FirmReviews")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Portfolio {
+  id       String @id @default(uuid())
+  firmId   String
+  firm     Firm   @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  
+  title    String
+  imageUrl String
+}
+
+model Request {
+  id           String        @id @default(uuid())
+  requesterId  String
+  requester    User          @relation("UserRequests", fields: [requesterId], references: [id])
+  
+  firmId       String?       // Alocat unei firme anume
+  firm         Firm?         @relation("FirmRequests", fields: [firmId], references: [id])
+  
+  category     String        // ex: "Instalații", "Curățenie"
+  workType     String?       // ex: "Reparație", "Întreținere"
+  description  String        @db.Text
+  urgencyLevel UrgencyLevel  @default(LOW)
+  scope        RequestScope  @default(PERSONAL) // PERSONAL = apartament, BUILDING = spațiu comun
+  status       RequestStatus @default(PENDING)
+
+  invoices     Invoice[]
+  contract     Contract?     // O cerere poate avea un singur contract
+  review       Review?       // O cerere poate avea un singur review
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Invoice {
+  id        String        @id @default(uuid())
+  requestId String
+  request   Request       @relation(fields: [requestId], references: [id])
+  
+  firmId    String
+  firm      Firm          @relation("FirmInvoices", fields: [firmId], references: [id])
+  
+  clientId  String
+  client    User          @relation("ClientInvoices", fields: [clientId], references: [id])
+  
+  amount    Decimal       @db.Decimal(10, 2)
+  pdfUrl    String?
+  status    InvoiceStatus @default(UNPAID)
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Contract {
+  id           String         @id @default(uuid())
+  
+  requestId    String         @unique
+  request      Request        @relation(fields: [requestId], references: [id])
+  
+  firmId       String
+  firm         Firm           @relation("FirmContracts", fields: [firmId], references: [id])
+  
+  clientId     String
+  client       User           @relation("ClientContracts", fields: [clientId], references: [id])
+  
+  status       ContractStatus @default(AWAITING_FIRM_DRAFT)
+  draftPdfUrl  String?
+  signedPdfUrl String?
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  
+  // Review-ul este legat strict de o cerere unică finalizată
+  requestId  String   @unique
+  request    Request  @relation(fields: [requestId], references: [id])
+  
+  reviewerId String
+  reviewer   User     @relation("UserReviews", fields: [reviewerId], references: [id])
+  
+  firmId     String
+  firm       Firm     @relation("FirmReviews", fields: [firmId], references: [id])
+  
+  rating     Int      // Va fi validat (1-5) pe backend/frontend
+  comment    String?  @db.Text
+
+  createdAt  DateTime @default(now())
+}
